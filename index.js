@@ -1,4 +1,4 @@
-// index.js
+
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -7,6 +7,8 @@ const {
 } = require("@whiskeysockets/baileys");
 const { Boom } = require("@hapi/boom");
 const qrcode = require("qrcode-terminal");
+const QRCode = require("qrcode");
+const http = require("http");
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("auth_info");
@@ -15,7 +17,7 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: true,
+        // printQRInTerminal: true, // Removed deprecated option
         browser: ["Chrome", "Windows", "10.0"],
     });
 
@@ -26,8 +28,13 @@ async function startBot() {
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
         if (qr) {
-            console.log("📌 امسح الكود ده بالواتساب:");
-            qrcode.generate(qr, { small: true });
+            console.log("📌 امسح الكود ده بالواتساب (أو انسخ السطر التالي في مولد QR):");
+            console.log(qr); // Log the QR string for remote use
+            // Save QR as PNG for download (if running locally)
+            QRCode.toFile("qr.png", qr, function (err) {
+                if (err) console.error("فشل حفظ QR:", err);
+                else console.log("تم حفظ QR كصورة qr.png");
+            });
         }
         if (connection === "close") {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
@@ -129,3 +136,12 @@ async function startBot() {
 }
 
 startBot();
+
+// Simple HTTP server for Railway
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("WhatsApp bot is running!\n");
+}).listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

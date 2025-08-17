@@ -1,5 +1,6 @@
 node_modules
-auth_info
 session
 .env
+# Keep auth_info ignored for security; use Railway persistent storage for session persistence
+auth_info
 
